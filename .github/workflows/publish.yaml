@@ -1,0 +1,33 @@
+name: Publish Docker images
+
+on: push
+
+jobs:
+  push_to_registries:
+    name: Publish Docker images
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+      contents: read
+    steps:
+      - name: Log in to the Container registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download archive file
+        run: |
+          wget https://downloads.raspberrypi.org/raspios_lite_armhf/root.tar.xz -O raspios_lite_armhf.root.tar.xz
+          wget https://downloads.raspberrypi.org/raspios_lite_arm64/root.tar.xz -O raspios_lite_arm64.root.tar.xz
+
+      - name: Import docker image
+        run: |
+          docker image import ./raspios_lite_armhf.root.tar.xz ghcr.io/longkey1/raspios:lite-armhf
+          docker image import ./raspios_lite_arm64.root.tar.xz ghcr.io/longkey1/raspios:lite-arm64
+
+      - name: push docker image
+        run: |
+          docker push ghcr.io/longkey1/raspios:lite-armhf
+          docker push ghcr.io/longkey1/raspios:lite-arm64
