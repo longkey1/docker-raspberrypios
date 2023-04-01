@@ -1,10 +1,24 @@
 name: Publish Docker images
 
-on: push
+on: workflow_dispatch
 
 jobs:
-  push_to_registries:
-    name: Publish Docker images
+  setup:
+    name: Setup outputs
+    runs-on: ubuntu-latest
+    outputs:
+      timestamp: ${{ steps.settimestamp.outputs.timestamp }}
+    steps:
+      - name: Set timestamp output
+        id: settimestamp
+        env:
+          TZ: 'Asia/Tokyo'
+        run: echo "timestamp=$(date +'%Y%m%d')" >> ${GITHUB_OUTPUT}
+
+  publish-armhf:
+    name: Publish armhf Docker image
+    needs:
+      - setup
     runs-on: ubuntu-latest
     permissions:
       packages: write
@@ -18,16 +32,97 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Download archive file
-        run: |
-          wget https://downloads.raspberrypi.org/raspios_lite_armhf/root.tar.xz -O raspios_lite_armhf.root.tar.xz
-          wget https://downloads.raspberrypi.org/raspios_lite_arm64/root.tar.xz -O raspios_lite_arm64.root.tar.xz
+        run: wget https://downloads.raspberrypi.org/raspios_armhf/root.tar.xz -O raspios_armhf.root.tar.xz
 
       - name: Import docker image
-        run: |
-          docker image import ./raspios_lite_armhf.root.tar.xz ghcr.io/longkey1/raspios:lite-armhf
-          docker image import ./raspios_lite_arm64.root.tar.xz ghcr.io/longkey1/raspios:lite-arm64
+        run: docker image import ./raspios_armhf.root.tar.xz ghcr.io/longkey1/raspios:armhf
+
+      - name: Add timestamp tag
+        run: docker image tag ghcr.io/longkey1/raspios:armhf ghcr.io/longkey1/raspios:armhf-${{ needs.setup.outputs.timestamp }}
+
+      - name: Push docker image
+        run: docker push ghcr.io/longkey1/raspios --all-tags
+
+  publish-arm64:
+    name: Publish arm64 Docker image
+    needs:
+      - setup
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+      contents: read
+    steps:
+      - name: Log in to the Container registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download archive file
+        run: wget https://downloads.raspberrypi.org/raspios_arm64/root.tar.xz -O raspios_arm64.root.tar.xz
+
+      - name: Import docker image
+        run: docker image import ./raspios_arm64.root.tar.xz ghcr.io/longkey1/raspios:arm64
+
+      - name: Add timestamp tag
+        run: docker image tag ghcr.io/longkey1/raspios:arm64 ghcr.io/longkey1/raspios:arm64-${{ needs.setup.outputs.timestamp }}
+
+      - name: Push docker image
+        run: docker push ghcr.io/longkey1/raspios --all-tags
+
+  publish-armhf-lite:
+    name: Publish armhf-lite Docker image
+    needs:
+      - setup
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+      contents: read
+    steps:
+      - name: Log in to the Container registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download archive file
+        run: wget https://downloads.raspberrypi.org/raspios_lite_armhf/root.tar.xz -O raspios_lite_armhf.root.tar.xz
+
+      - name: Import docker image
+        run: docker image import ./raspios_lite_armhf.root.tar.xz ghcr.io/longkey1/raspios:armhf-lite
+
+      - name: Add timestamp tag
+        run: docker image tag ghcr.io/longkey1/raspios:armhf-lite ghcr.io/longkey1/raspios:armhf-lite-${{ needs.setup.outputs.timestamp }}
+
+      - name: Push docker image
+        run: docker push ghcr.io/longkey1/raspios --all-tags
+
+  publish-arm64-lite:
+    name: Publish arm64-lite Docker image
+    needs:
+      - setup
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+      contents: read
+    steps:
+      - name: Log in to the Container registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download archive file
+        run: wget https://downloads.raspberrypi.org/raspios_lite_arm64/root.tar.xz -O raspios_lite_arm64.root.tar.xz
+
+      - name: Import docker image
+        run: docker image import ./raspios_lite_arm64.root.tar.xz ghcr.io/longkey1/raspios:arm64-lite
+
+      - name: Add timestamp tag
+        run: docker image tag ghcr.io/longkey1/raspios:arm64-lite ghcr.io/longkey1/raspios:arm64-lite-${{ needs.setup.outputs.timestamp }}
 
       - name: push docker image
-        run: |
-          docker push ghcr.io/longkey1/raspios:lite-armhf
-          docker push ghcr.io/longkey1/raspios:lite-arm64
+        run: docker push ghcr.io/longkey1/raspios --all-tags
